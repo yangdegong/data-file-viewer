@@ -45,3 +45,10 @@ def test_page_list_column_rows_are_json_lists():
 def test_page_sort_by_list_column():
     res = page(_list_df(), offset=0, limit=3, sort_by="pos", sort_dir="desc")
     assert [r[0][0] for r in res["rows"]] == [6.0, 3.0, 0.0]
+
+
+def test_page_reports_offset_and_original_row_numbers():
+    res = page(_df(), offset=4, limit=3, sort_by=None, sort_dir=None)
+    assert res["offset"] == 4 and res["index"] == [4, 5, 6]
+    res = page(_df(), offset=0, limit=2, sort_by="id", sort_dir="desc")
+    assert res["index"] == [9, 8]  # positions in the file, not in the sorted view

@@ -1,3 +1,4 @@
+import pandas as pd
 from python.jsonsafe import to_jsonable, as_hashable
 
 
@@ -15,4 +16,7 @@ def page(df, offset: int, limit: int, sort_by, sort_dir) -> dict:
                               kind="mergesort", key=as_hashable)
     window = view.iloc[offset: offset + limit]
     rows = [[to_jsonable(v) for v in row] for row in window.itertuples(index=False, name=None)]
-    return {"rows": rows, "total": total}
+    out = {"rows": rows, "total": total, "offset": int(offset)}
+    if pd.api.types.is_integer_dtype(window.index):
+        out["index"] = window.index.tolist()  # original row numbers, also after sorting
+    return out
