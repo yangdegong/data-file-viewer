@@ -1,4 +1,4 @@
-from python.jsonsafe import to_jsonable
+from python.jsonsafe import to_jsonable, as_hashable
 
 
 def page(df, offset: int, limit: int, sort_by, sort_dir) -> dict:
@@ -12,7 +12,7 @@ def page(df, offset: int, limit: int, sort_by, sort_dir) -> dict:
     view = df
     if sort_by is not None and sort_by in df.columns:
         view = df.sort_values(by=sort_by, ascending=(sort_dir != "desc"),
-                              kind="mergesort")
+                              kind="mergesort", key=as_hashable)
     window = view.iloc[offset: offset + limit]
     rows = [[to_jsonable(v) for v in row] for row in window.itertuples(index=False, name=None)]
     return {"rows": rows, "total": total}

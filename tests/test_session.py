@@ -178,3 +178,35 @@ def test_node_arr_none_guard_returns_error(tmp_path):
     replies = [json.loads(l) for l in proc.stdout.splitlines() if l.strip()]
     assert len(replies) == 1
     assert replies[0]["ok"] is False and replies[0]["error"]
+
+
+def test_list_column_file_pages_sorts_and_profiles(tmp_path):
+    import numpy as np
+    import pyarrow as pa
+    import pyarrow.feather as feather
+    path = tmp_path / "lists.feather"
+    pos = pa.FixedSizeListArray.from_arrays(pa.array(np.arange(9, dtype=np.float32)), 3)
+    feather.write_feather(pa.table({"pos": pos, "ok": [True, False, True]}), str(path))
+    replies = _run_on(str(path), [
+        {"id": 1, "cmd": "page", "offset": 0, "limit": 200},
+        {"id": 2, "cmd": "page", "offset": 0, "limit": 1, "sortBy": "pos", "sortDir": "desc"},
+        {"id": 3, "cmd": "profile", "column": "pos"},
+    ])
+    by_id = {r["id"]: r for r in replies}
+    assert all(r["ok"] for r in replies), replies
+    assert by_id[1]["result"]["rows"][1] == [[3.0, 4.0, 5.0], False]
+    assert by_id[2]["result"]["rows"][0][0] == [6.0, 7.0, 8.0]
+    assert by_id[3]["result"]["unique"] == 3
+
+
+def test_unserializable_result_becomes_error_reply(monkeypatch, capsys):
+    import io
+    from python import session as session_mod
+    monkeypatch.setattr(session_mod.Session, "handle", lambda self, req: {"x": object()})
+    monkeypatch.setattr(sys, "argv", ["session.py", FIXTURE])
+    monkeypatch.setattr(sys, "stdin", io.StringIO(
+        json.dumps({"id": 1, "cmd": "open"}) + "\n" + json.dumps({"id": 2, "cmd": "open"}) + "\n"))
+    session_mod.main()
+    replies = [json.loads(l) for l in capsys.readouterr().out.splitlines() if l.strip()]
+    assert [r["id"] for r in replies] == [1, 2]  # the session survived the first failure
+    assert all(r["ok"] is False and "not JSON serializable" in r["error"] for r in replies)

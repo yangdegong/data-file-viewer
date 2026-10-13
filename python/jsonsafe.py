@@ -8,6 +8,14 @@ def to_jsonable(value):
         return None
     if isinstance(value, (bytes, bytearray)):
         return bytes(value).decode("utf-8", "replace")
+    if isinstance(value, (np.ndarray, list, tuple)):
+        # Arrow list / fixed_size_list columns arrive from to_pandas() as ndarray cells
+        return [to_jsonable(v) for v in value]
+    if isinstance(value, dict):
+        return {str(k): to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, np.floating) and value.dtype.itemsize < 8:
+        # shortest repr, so float32 0.1 shows as 0.1 rather than 0.10000000149011612
+        value = float(str(value))
     if isinstance(value, np.generic):
         value = value.item()
     if isinstance(value, complex):
@@ -24,3 +32,11 @@ def to_jsonable(value):
     except (TypeError, ValueError):
         pass
     return value
+
+
+def as_hashable(series):
+    """Map array cells to flat tuples so sort_values / nunique / value_counts work on them."""
+    if series.dtype != object:
+        return series
+    return series.map(lambda v: tuple(to_jsonable(x) for x in np.asarray(v).ravel())
+                      if isinstance(v, (np.ndarray, list, tuple)) else v)

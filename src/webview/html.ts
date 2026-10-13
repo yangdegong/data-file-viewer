@@ -467,7 +467,7 @@ export function getExplorerHtml(opts: { fileName: string; cspSource: string; non
     function valueHtml(v) {
       if (v === null || v === undefined) return '<span class="value-null">null</span>';
       if (typeof v === 'number' && !Number.isFinite(v)) return '<span class="value-special">' + esc(String(v)) + '</span>';
-      const s = String(v);
+      const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
       if (s === 'NaN' || s === 'Infinity' || s === '-Infinity') return '<span class="value-special">' + esc(s) + '</span>';
       return esc(s);
     }
@@ -663,7 +663,7 @@ export function getExplorerHtml(opts: { fileName: string; cspSource: string; non
     function fmt(v){ if(v===null||v===undefined)return '-'; if(typeof v!=='number')return String(v); if(Number.isNaN(v))return '-'; return Number.isInteger(v)?String(v):Number(v.toPrecision(4)).toString(); }
     function fmtPct(v){ return typeof v === 'number' ? (v * 100).toFixed(1) + '%' : '-'; }
     function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    function csvField(v){ if(v===null||v===undefined)return ''; const s=String(v); return /[",\\r\\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+    function csvField(v){ if(v===null||v===undefined)return ''; const s=typeof v==='object'?JSON.stringify(v):String(v); return /[",\\r\\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
     function toCsv(cols, rows){ const lines=[cols.map(csvField).join(',')]; for(const r of rows) lines.push(r.map(csvField).join(',')); return lines.join('\\r\\n'); }
     function csvName(fn){ const dot=fn.lastIndexOf('.'); return (dot>0?fn.slice(0,dot):fn)+'.csv'; }
 
