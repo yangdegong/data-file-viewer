@@ -193,8 +193,14 @@ export function getExplorerHtml(opts: { fileName: string; cspSource: string; non
     min-height:0;
     overflow:auto;
     padding:10px;
+    display:flex;
+    flex-direction:column;
   }
   .view{min-width:0;}
+  /* Data and Raw scroll inside their .table-wrap, so its horizontal scrollbar
+     and the sticky header row stay in view instead of sitting below the last row. */
+  #view-data,#view-raw{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
+  #view-data>.table-wrap,#view-raw>.table-wrap{flex:0 1 auto;min-height:0;}
   .notice{
     min-height:22px;
     margin:0 0 8px;
