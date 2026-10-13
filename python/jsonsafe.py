@@ -1,3 +1,4 @@
+import datetime
 import math
 import numpy as np
 import pandas as pd
@@ -16,6 +17,14 @@ def to_jsonable(value):
     if isinstance(value, np.floating) and value.dtype.itemsize < 8:
         # shortest repr, so float32 0.1 shows as 0.1 rather than 0.10000000149011612
         value = float(str(value))
+    if isinstance(value, np.datetime64):
+        value = pd.Timestamp(value)  # .item() would return an int for ns precision
+    elif isinstance(value, np.timedelta64):
+        value = pd.Timedelta(value)
+    if value is pd.NaT:
+        return None
+    if isinstance(value, (datetime.date, datetime.time, datetime.timedelta)):
+        return str(value)  # also covers pd.Timestamp / pd.Timedelta (subclasses)
     if isinstance(value, np.generic):
         value = value.item()
     if isinstance(value, complex):
@@ -31,7 +40,9 @@ def to_jsonable(value):
             return None
     except (TypeError, ValueError):
         pass
-    return value
+    if isinstance(value, (str, int, float, bool, list, dict)):
+        return value
+    return str(value)  # Decimal, UUID, ...: keep the row displayable
 
 
 def as_hashable(series):

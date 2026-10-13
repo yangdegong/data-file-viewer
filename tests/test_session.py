@@ -210,3 +210,21 @@ def test_unserializable_result_becomes_error_reply(monkeypatch, capsys):
     replies = [json.loads(l) for l in capsys.readouterr().out.splitlines() if l.strip()]
     assert [r["id"] for r in replies] == [1, 2]  # the session survived the first failure
     assert all(r["ok"] is False and "not JSON serializable" in r["error"] for r in replies)
+
+
+def test_datetime_columns_page_and_profile(tmp_path):
+    import pandas as pd
+    path = tmp_path / "times.parquet"
+    pd.DataFrame({
+        "t": pd.date_range("2026-01-01", periods=3, freq="h", tz="UTC"),
+        "d": pd.to_timedelta([1, 2, 3], unit="s"),
+    }).to_parquet(str(path))
+    replies = _run_on(str(path), [
+        {"id": 1, "cmd": "page", "offset": 0, "limit": 1, "sortBy": "t", "sortDir": "desc"},
+        {"id": 2, "cmd": "profile", "column": "t"},
+        {"id": 3, "cmd": "rawJson"},
+    ])
+    assert all(r["ok"] for r in replies), replies
+    assert replies[0]["result"]["rows"][0] == ["2026-01-01 02:00:00+00:00", "0 days 00:00:03"]
+    assert replies[1]["result"]["unique"] == 3
+    assert replies[2]["result"]["json"]["data"][0]["t"] == "2026-01-01 00:00:00+00:00"

@@ -44,3 +44,17 @@ def test_array_cells_become_json_lists():
 def test_float32_scalar_uses_shortest_repr():
     assert to_jsonable(np.float32(0.1)) == 0.1
     assert to_jsonable(np.float32("nan")) is None
+
+
+def test_datetime_values_become_strings():
+    import datetime
+    assert to_jsonable(pd.Timestamp("2026-01-01 08:30")) == "2026-01-01 08:30:00"
+    assert to_jsonable(np.datetime64("2026-01-01T08:30:00.000000000")) == "2026-01-01 08:30:00"
+    assert to_jsonable(np.datetime64("NaT")) is None
+    assert to_jsonable(pd.Timedelta(seconds=90)) == "0 days 00:01:30"
+    assert to_jsonable(datetime.date(2026, 1, 2)) == "2026-01-02"
+
+
+def test_unknown_objects_fall_back_to_str():
+    from decimal import Decimal
+    assert to_jsonable(Decimal("1.50")) == "1.50"
